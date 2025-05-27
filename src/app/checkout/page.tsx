@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // useEffect ditambahkan
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -25,18 +25,33 @@ export default function CheckoutPage() {
   const cartTotal = getCartTotal();
   const itemCount = getCartItemCount();
 
-  if (itemCount === 0 && typeof window !== 'undefined') { // typeof window check for server components
-     router.push('/cart'); // Redirect if cart is empty
-     return null;
-  }
+  useEffect(() => {
+    if (itemCount === 0) {
+      toast({
+        title: "Keranjang Kosong",
+        description: "Anda akan dialihkan ke halaman keranjang.",
+      });
+      router.push('/cart');
+    }
+  }, [itemCount, router, toast]);
 
+  if (itemCount === 0) {
+    // Menampilkan pesan saat keranjang kosong dan sedang dialihkan
+    return (
+      <div className="container mx-auto flex h-screen flex-col items-center justify-center py-8">
+        <CreditCard className="mb-4 h-16 w-16 text-muted-foreground" />
+        <p className="text-xl text-muted-foreground">Keranjang Anda kosong.</p>
+        <p className="text-md text-muted-foreground">Mengalihkan ke halaman keranjang...</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !address || !email) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Informasi Kurang",
+        description: "Harap isi semua kolom yang diperlukan.",
         variant: "destructive",
       });
       return;
@@ -47,8 +62,8 @@ export default function CheckoutPage() {
       router.push('/transactions'); // Redirect to transaction history or an order confirmation page
     } catch (error) {
       toast({
-        title: "Order Failed",
-        description: "There was an issue placing your order. Please try again.",
+        title: "Pesanan Gagal",
+        description: "Terjadi masalah saat membuat pesanan Anda. Silakan coba lagi.",
         variant: "destructive",
       });
     }
@@ -67,20 +82,20 @@ export default function CheckoutPage() {
         <form onSubmit={handleSubmit} className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Shipping Information</CardTitle>
-              <CardDescription>Enter your name and address for delivery.</CardDescription>
+              <CardTitle>Informasi Pengiriman</CardTitle>
+              <CardDescription>Masukkan nama dan alamat Anda untuk pengiriman.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="name" className="flex items-center"><User className="mr-2 h-4 w-4 text-muted-foreground"/>Full Name</Label>
+                <Label htmlFor="name" className="flex items-center"><User className="mr-2 h-4 w-4 text-muted-foreground"/>Nama Lengkap</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
               <div>
-                <Label htmlFor="email" className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email Address</Label>
+                <Label htmlFor="email" className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Alamat Email</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div>
-                <Label htmlFor="address" className="flex items-center"><Home className="mr-2 h-4 w-4 text-muted-foreground"/>Address</Label>
+                <Label htmlFor="address" className="flex items-center"><Home className="mr-2 h-4 w-4 text-muted-foreground"/>Alamat</Label>
                 <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} required />
               </div>
             </CardContent>
@@ -88,22 +103,22 @@ export default function CheckoutPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Payment Method</CardTitle>
-              <CardDescription>Payment will be processed manually.</CardDescription>
+              <CardTitle>Metode Pembayaran</CardTitle>
+              <CardDescription>Pembayaran akan diproses secara manual.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Selected method: <strong>{paymentMethod}</strong></p>
-              <p className="text-sm mt-2">Further instructions will be provided after placing the order for manual payment.</p>
+              <p className="text-muted-foreground">Metode terpilih: <strong>{paymentMethod}</strong></p>
+              <p className="text-sm mt-2">Instruksi lebih lanjut akan diberikan setelah melakukan pemesanan untuk pembayaran manual.</p>
             </CardContent>
           </Card>
           
-          <Button type="submit" size="lg" className="w-full">Place Order</Button>
+          <Button type="submit" size="lg" className="w-full">Buat Pesanan</Button>
         </form>
 
         <div className="md:col-span-1">
           <Card className="sticky top-20">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle>Ringkasan Pesanan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {cart.map(item => (
@@ -118,8 +133,8 @@ export default function CheckoutPage() {
                 <span>${cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold">
-                <span>Shipping</span>
-                <span>FREE</span>
+                <span>Pengiriman</span>
+                <span>GRATIS</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
