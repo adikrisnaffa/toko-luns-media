@@ -1,3 +1,4 @@
+
 import type { Product, Transaction } from '@/lib/types';
 
 export const mockProducts: Product[] = [
@@ -137,12 +138,13 @@ export const mockTransactions: Transaction[] = [
     id: 'txn_expense_1',
     date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
     items: [],
-    totalAmount: 75,
+    totalAmount: -75, // Expenses should be negative or handled as absolute in calculations
     status: 'Completed',
     type: 'expense',
     description: 'Office Supplies Purchase',
     category: 'Office Expenses',
   }
 ];
-
+// This export 'productCategories' is now primarily for the main catalog page filtering.
+// AppContext will manage its own derived list of categories for the admin product form.
 export const productCategories = ["All", ...new Set(mockProducts.map(p => p.category))];

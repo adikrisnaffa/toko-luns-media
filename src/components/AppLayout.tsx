@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ShoppingCart, ListOrdered, UserCircle, BarChart3, DollarSign, Settings, LogOut, CreditCard } from 'lucide-react';
+import { Home, ShoppingCart, ListOrdered, UserCircle, BarChart3, DollarSign, Settings, LogOut, CreditCard, Package } from 'lucide-react'; // Added Package
 import {
   SidebarProvider,
   Sidebar,
@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
   { href: '/checkout', label: 'Checkout', icon: CreditCard },
   { href: '/transactions', label: 'My Orders', icon: ListOrdered },
   { href: '/admin', label: 'Admin Dashboard', icon: Settings, adminOnly: true },
+  { href: '/admin/products', label: 'Manage Products', icon: Package, adminOnly: true }, // Added this line
   { href: '/admin/record-transaction', label: 'Record Transaction', icon: DollarSign, adminOnly: true },
   { href: '/admin/financial-report', label: 'Financial Report', icon: BarChart3, adminOnly: true },
 ];
@@ -81,7 +82,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {currentUser && (
             <div className="flex items-center gap-2">
               <Avatar>
-                <AvatarImage src={`https://placehold.co/40x40.png?text=${currentUser.name.charAt(0)}`} alt={currentUser.name} />
+                <AvatarImage src={`https://placehold.co/40x40.png?text=${currentUser.name.charAt(0)}`} alt={currentUser.name} data-ai-hint="user avatar" />
                 <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
@@ -115,7 +116,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 </Link>
                 {currentUser && (
                      <Avatar>
-                        <AvatarImage src={`https://placehold.co/40x40.png?text=${currentUser.name.charAt(0)}`} alt={currentUser.name} />
+                        <AvatarImage src={`https://placehold.co/40x40.png?text=${currentUser.name.charAt(0)}`} alt={currentUser.name} data-ai-hint="user avatar" />
                         <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                 )}

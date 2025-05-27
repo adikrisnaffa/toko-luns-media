@@ -5,7 +5,7 @@ import type { Product, CartItem, Transaction, User } from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { getProductRecommendations, type ProductRecommendationsOutput } from '@/ai/flows/product-recommendations';
 import { useToast } from '@/hooks/use-toast';
-import { mockProducts, mockTransactions } from '@/lib/data';
+import { mockProducts, mockTransactions, productCategories as initialProductCategories } from '@/lib/data'; // Renamed to avoid conflict
 
 interface AppContextType {
   products: Product[];
@@ -24,6 +24,11 @@ interface AppContextType {
   isRecommendationsLoading: boolean;
   addTransactionRecord: (record: Omit<Transaction, 'id' | 'date' | 'items' | 'status'> & { amount: number }) => void;
   allTransactions: Transaction[];
+  addProduct: (productData: Omit<Product, 'id'>) => void;
+  updateProduct: (productId: string, productData: Partial<Omit<Product, 'id'>>) => void;
+  deleteProduct: (productId: string) => void;
+  getProductById: (productId: string) => Product | undefined;
+  productCategories: string[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -37,6 +42,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false);
+
+  // Derive product categories from the current products state
+  const [productCategories, setProductCategories] = useState<string[]>(() => {
+    const categories = new Set(products.map(p => p.category));
+    return Array.from(categories).sort();
+  });
+
+  useEffect(() => {
+    const categories = new Set(products.map(p => p.category));
+    setProductCategories(Array.from(categories).sort());
+  }, [products]);
+
 
   const addToCart = (product: Product, quantity: number = 1) => {
     setCart((prevCart) => {
@@ -93,7 +110,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setTransactions(prev => [newTransaction, ...prev]);
     
-    // Simulate stock update
     const newProducts = products.map(p => {
       const cartItem = cart.find(ci => ci.product.id === p.id);
       if (cartItem) {
@@ -118,10 +134,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const result: ProductRecommendationsOutput = await getProductRecommendations({ cartItems: cartItemNames });
       
       const recommendations = result.recommendedProducts
-        .map(name => products.find(p => p.name.toLowerCase() === name.toLowerCase())) // Case-insensitive find
+        .map(name => products.find(p => p.name.toLowerCase() === name.toLowerCase()))
         .filter((p): p is Product => p !== undefined)
-        .filter(p => !cart.some(cartItem => cartItem.product.id === p.id)) // Not already in cart
-        .slice(0, 3); // Limit to 3
+        .filter(p => !cart.some(cartItem => cartItem.product.id === p.id))
+        .slice(0, 3);
       setRecommendedProducts(recommendations);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
@@ -134,14 +150,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   useEffect(() => {
-    // Debounce or control recommendation fetching frequency if needed
     const timer = setTimeout(() => {
       if (cart.length > 0) {
         fetchRecommendations();
       } else {
         setRecommendedProducts([]);
       }
-    }, 500); // Simple debounce
+    }, 500);
     return () => clearTimeout(timer);
   }, [cart, fetchRecommendations]);
 
@@ -149,7 +164,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newRecord: Transaction = {
       id: `txn_${record.type}_${Date.now()}`,
       date: new Date().toISOString(),
-      items: [], // No items for manual income/expense records
+      items: [],
       totalAmount: record.type === 'expense' ? -Math.abs(record.amount) : Math.abs(record.amount),
       status: 'Completed',
       type: record.type,
@@ -160,13 +175,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toast({ title: `${record.type.charAt(0).toUpperCase() + record.type.slice(1)} Recorded` });
   };
 
+  const addProduct = (productData: Omit<Product, 'id'>) => {
+    const newProduct: Product = {
+      id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      ...productData,
+    };
+    setProducts(prevProducts => [newProduct, ...prevProducts]);
+    toast({ title: "Product Added", description: `${newProduct.name} has been added successfully.` });
+  };
+
+  const updateProduct = (productId: string, productData: Partial<Omit<Product, 'id'>>) => {
+    setProducts(prevProducts =>
+      prevProducts.map(p =>
+        p.id === productId ? { ...p, ...productData } : p
+      )
+    );
+    toast({ title: "Product Updated", description: `Product ID ${productId} has been updated.` });
+  };
+
+  const deleteProduct = (productId: string) => {
+    setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
+    toast({ title: "Product Deleted", description: `Product ID ${productId} has been deleted.`, variant: "destructive" });
+  };
+
+  const getProductById = (productId: string): Product | undefined => {
+    return products.find(p => p.id === productId);
+  };
+
 
   return (
     <AppContext.Provider value={{ 
       products, cart, transactions, currentUser, 
       addToCart, removeFromCart, updateCartItemQuantity, clearCart, getCartTotal, getCartItemCount, placeOrder, 
       recommendedProducts, fetchRecommendations, isRecommendationsLoading,
-      addTransactionRecord, allTransactions: transactions 
+      addTransactionRecord, allTransactions: transactions,
+      addProduct, updateProduct, deleteProduct, getProductById,
+      productCategories
     }}>
       {children}
     </AppContext.Provider>
@@ -180,4 +224,3 @@ export const useAppContext = () => {
   }
   return context;
 };
-
