@@ -145,6 +145,4 @@ export const mockTransactions: Transaction[] = [
     category: 'Office Expenses',
   }
 ];
-// This export 'productCategories' is now primarily for the main catalog page filtering.
-// AppContext will manage its own derived list of categories for the admin product form.
-export const productCategories = ["All", ...new Set(mockProducts.map(p => p.category))];
+// The 'productCategories' export was removed as AppContext and consuming components now handle category derivation.

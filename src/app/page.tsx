@@ -6,13 +6,17 @@ import ProductCard from '@/components/ProductCard';
 import { useAppContext } from '@/contexts/AppContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { productCategories } from '@/lib/data'; // Assuming categories are exported from data
+// Removed: import { productCategories } from '@/lib/data';
 import { Search } from 'lucide-react';
 
 export default function ProductCatalogPage() {
-  const { products } = useAppContext();
+  const { products, productCategories: rawProductCategories } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const categoriesForFilter = useMemo(() => {
+    return ["All", ...rawProductCategories];
+  }, [rawProductCategories]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
@@ -46,7 +50,7 @@ export default function ProductCatalogPage() {
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
           <SelectContent>
-            {productCategories.map(category => (
+            {categoriesForFilter.map(category => (
               <SelectItem key={category} value={category}>
                 {category}
               </SelectItem>
