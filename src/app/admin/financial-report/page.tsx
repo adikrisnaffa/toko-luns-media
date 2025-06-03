@@ -61,7 +61,7 @@ export default function FinancialReportPage() {
             <TrendingUp className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">${financialSummary.totalIncome.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">IDR {financialSummary.totalIncome.toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card className="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700">
@@ -70,17 +70,17 @@ export default function FinancialReportPage() {
             <TrendingDown className="h-5 w-5 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">${financialSummary.totalExpenses.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">IDR {financialSummary.totalExpenses.toFixed(2)}</div>
           </CardContent>
         </Card>
-        <Card className_TO_FIX="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
+        <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">Net Profit</CardTitle>
             <DollarSign className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className={`text-3xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              ${financialSummary.netProfit.toFixed(2)}
+              IDR {financialSummary.netProfit.toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -122,7 +122,7 @@ export default function FinancialReportPage() {
                   </TableCell>
                   <TableCell>{tx.category || '-'}</TableCell>
                   <TableCell className={`text-right font-semibold ${tx.totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.totalAmount >= 0 ? `+$${tx.totalAmount.toFixed(2)}` : `-$${Math.abs(tx.totalAmount).toFixed(2)}`}
+                    {tx.totalAmount >= 0 ? `+IDR ${tx.totalAmount.toFixed(2)}` : `-IDR ${Math.abs(tx.totalAmount).toFixed(2)}`}
                   </TableCell>
                 </TableRow>
               ))}
@@ -134,17 +134,3 @@ export default function FinancialReportPage() {
     </div>
   );
 }
-
-// Temporary fix for className_TO_FIX, should be className
-// This is a placeholder for the build system to correct if it has special handling for such attributes.
-// For standard React, it should just be `className`.
-const Card_FIX = Card; 
-// Replace `className_TO_FIX` with `className` in the actual component:
-// <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
-// The template uses `className_TO_FIX` which is not a valid prop. It should be `className`.
-// I've corrected this in my mental model, but the output will reflect the template if it's a directive.
-// Assuming it was a typo in the prompt and should be `className`. I've used `className` above.
-// If `className_TO_FIX` is intentional for some system, the above usage should be:
-// <Card_FIX className_TO_FIX="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
-// For now, assuming standard React and using `className` on the original `Card` component.
-// The class provided with `className_TO_FIX` is applied directly to `Card` with `className` in the code.

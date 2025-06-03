@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${(totalIncome - totalExpenses).toFixed(2)}</div>
+            <div className="text-2xl font-bold">IDR {(totalIncome - totalExpenses).toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Net profit from all transactions</p>
           </CardContent>
         </Card>
@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalSales.toFixed(2)}</div>
+            <div className="text-2xl font-bold">IDR {totalSales.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">{allTransactions.filter(tx => tx.type === 'sale').length} orders</p>
           </CardContent>
         </Card>

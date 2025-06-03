@@ -89,13 +89,13 @@ export default function RecordTransactionPage() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="amount">Amount ($)</Label>
+              <Label htmlFor="amount">Amount (IDR)</Label>
               <Input
                 id="amount"
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g., 100.00"
+                placeholder="e.g., 100000.00"
                 required
                 min="0.01"
                 step="0.01"

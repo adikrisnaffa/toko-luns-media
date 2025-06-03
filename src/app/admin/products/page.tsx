@@ -188,7 +188,7 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">{product.category}</TableCell>
-                    <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">IDR {product.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right hidden md:table-cell">{product.stock}</TableCell>
                     <TableCell className="text-center">
                       <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product.id)} className="mr-2 hover:text-primary">
@@ -225,7 +225,7 @@ export default function AdminProductsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="price">Price (IDR)</Label>
                 <Input id="price" name="price" type="number" value={formData.price} onChange={handleInputChange} required min="0.01" step="0.01" />
               </div>
               <div>
@@ -285,4 +285,3 @@ export default function AdminProductsPage() {
     </div>
   );
 }
-

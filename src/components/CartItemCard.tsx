@@ -41,7 +41,7 @@ export default function CartItemCard({ item }: CartItemCardProps) {
           <a className="text-lg font-semibold hover:text-primary transition-colors">{item.product.name}</a>
         </Link>
         <p className="text-sm text-muted-foreground">{item.product.category}</p>
-        <p className="text-md font-medium text-primary">${item.product.price.toFixed(2)}</p>
+        <p className="text-md font-medium text-primary">IDR {item.product.price.toFixed(2)}</p>
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" onClick={() => handleQuantityChange(item.quantity - 1)} aria-label="Decrease quantity">
@@ -60,7 +60,7 @@ export default function CartItemCard({ item }: CartItemCardProps) {
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      <p className="w-24 text-right font-semibold text-lg">${(item.product.price * item.quantity).toFixed(2)}</p>
+      <p className="w-24 text-right font-semibold text-lg">IDR {(item.product.price * item.quantity).toFixed(2)}</p>
       <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.product.id)} className="text-destructive hover:text-destructive" aria-label="Remove item">
         <X className="h-5 w-5" />
       </Button>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react'; // useEffect ditambahkan
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ export default function CheckoutPage() {
   const itemCount = getCartItemCount();
 
   useEffect(() => {
-    if (itemCount === 0) {
+    if (itemCount === 0 && typeof window !== 'undefined') { // Check if window is defined for client-side routing
       toast({
         title: "Keranjang Kosong",
         description: "Anda akan dialihkan ke halaman keranjang.",
@@ -124,13 +124,13 @@ export default function CheckoutPage() {
               {cart.map(item => (
                 <div key={item.product.id} className="flex justify-between text-sm">
                   <span>{item.product.name} x {item.quantity}</span>
-                  <span>${(item.product.price * item.quantity).toFixed(2)}</span>
+                  <span>IDR {(item.product.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
               <Separator />
               <div className="flex justify-between font-semibold">
                 <span>Subtotal</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>IDR {cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Pengiriman</span>
@@ -139,7 +139,7 @@ export default function CheckoutPage() {
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>IDR {cartTotal.toFixed(2)}</span>
               </div>
             </CardContent>
           </Card>

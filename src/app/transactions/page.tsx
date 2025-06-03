@@ -80,7 +80,7 @@ export default function TransactionHistoryPage() {
                     <TableCell>
                       {tx.items.map(item => `${item.name} (x${item.quantity})`).join(', ') || tx.description || '-'}
                     </TableCell>
-                    <TableCell className="text-right">${tx.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">IDR {tx.totalAmount.toFixed(2)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={getStatusVariant(tx.status)}>{tx.status}</Badge>
                     </TableCell>
