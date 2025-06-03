@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft, UploadCloud } from 'lucide-react';
 import Image from 'next/image';
 
 const initialFormState: Omit<Product, 'id'> = {
@@ -38,6 +38,7 @@ export default function AdminProductsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentUser?.role !== 'admin' && typeof window !== 'undefined') {
@@ -65,9 +66,31 @@ export default function AdminProductsPage() {
     setFormData(prev => ({ ...prev, category: value }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setFormData(prev => ({ ...prev, imageUrl: result }));
+        setImagePreview(result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // If no file is selected, clear the preview and potentially the imageUrl if desired.
+      // For now, retain existing imageUrl if user cancels file selection.
+      // If editing, and user cancels, keep existing image. If new, and cancels, it's fine.
+      if (!editingProduct) { // Only clear if it's a new product and they deselected
+        setFormData(prev => ({ ...prev, imageUrl: initialFormState.imageUrl }));
+        setImagePreview(null);
+      }
+    }
+  };
+
   const handleAddProduct = () => {
     setEditingProduct(null);
     setFormData(initialFormState);
+    setImagePreview(null);
     setIsDialogOpen(true);
   };
 
@@ -80,10 +103,11 @@ export default function AdminProductsPage() {
         description: product.description,
         price: product.price,
         category: product.category,
-        imageUrl: product.imageUrl,
+        imageUrl: product.imageUrl, // This could be a URL or a Data URI
         stock: product.stock,
         dataAiHint: product.dataAiHint || '',
       });
+      setImagePreview(product.imageUrl); // Show current image
       setIsDialogOpen(true);
     }
   };
@@ -104,7 +128,7 @@ export default function AdminProductsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.category || formData.price <= 0 || formData.stock < 0 || !formData.imageUrl) {
-      toast({ title: "Validation Error", description: "Please fill all required fields correctly.", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Please fill all required fields and upload an image.", variant: "destructive" });
       return;
     }
 
@@ -116,6 +140,7 @@ export default function AdminProductsPage() {
     setIsDialogOpen(false);
     setEditingProduct(null);
     setFormData(initialFormState);
+    setImagePreview(null);
   };
   
   const uniqueCategories = useMemo(() => {
@@ -240,7 +265,7 @@ export default function AdminProductsPage() {
                         <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                        {uniqueCategories.map(cat => cat && ( // Ensure cat is not empty string before rendering SelectItem
+                        {uniqueCategories.map(cat => cat && ( 
                         <SelectItem key={cat} value={cat}>
                             {cat}
                         </SelectItem>
@@ -249,8 +274,18 @@ export default function AdminProductsPage() {
                 </Select>
             </div>
             <div>
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleInputChange} required placeholder="https://placehold.co/600x400.png" />
+              <Label htmlFor="imageUpload">Product Image</Label>
+              <Input id="imageUpload" name="imageUpload" type="file" accept="image/*" onChange={handleImageChange} className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" />
+              {imagePreview && (
+                <div className="mt-2 relative w-full h-48">
+                  <Image src={imagePreview} alt="Image Preview" layout="fill" objectFit="contain" className="rounded-md border" />
+                </div>
+              )}
+               {!imagePreview && editingProduct?.imageUrl && (
+                 <div className="mt-2 relative w-full h-48">
+                  <Image src={editingProduct.imageUrl} alt="Current Image" layout="fill" objectFit="contain" className="rounded-md border" />
+                </div>
+               )}
             </div>
             <div>
               <Label htmlFor="dataAiHint">Data AI Hint (Optional, for image search)</Label>
@@ -285,3 +320,4 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+

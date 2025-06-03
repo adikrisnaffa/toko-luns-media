@@ -4,7 +4,7 @@ export interface Product {
   description: string;
   price: number;
   category: string;
-  imageUrl: string;
+  imageUrl: string; // Can be a web URL or a Base64 Data URI for uploaded images
   stock: number;
   dataAiHint?: string;
 }
@@ -44,3 +44,4 @@ export interface FinancialReport {
   netProfit: number;
   period: string;
 }
+
