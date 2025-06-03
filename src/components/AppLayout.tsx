@@ -55,7 +55,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-4">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground">
             <Logo className="h-8 w-8 text-sidebar-primary" />
-            <span>TokoSimpel</span>
+            <span>LUN'S MEDIA</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>
@@ -101,7 +101,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
             <div className="flex items-center gap-2">
                  <SidebarTrigger className="md:hidden" /> {/* Mobile toggle */}
-                 <h1 className="text-xl font-semibold">TokoSimpel</h1>
+                 <h1 className="text-xl font-semibold">LUN'S MEDIA</h1>
             </div>
             <div className="flex items-center gap-4">
                 <Link href="/cart">

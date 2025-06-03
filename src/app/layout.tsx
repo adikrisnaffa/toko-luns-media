@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'TokoSimpel',
-  description: 'A simple e-commerce application by Firebase Studio',
+  title: "LUN'S MEDIA",
+  description: "LUN'S MEDIA - A simple e-commerce application by Firebase Studio",
 };
 
 export default function RootLayout({
