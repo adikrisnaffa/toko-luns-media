@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppContext } from '@/contexts/AppContext';
 import { ShoppingCart } from 'lucide-react';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -33,7 +34,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <CardDescription className="text-sm text-muted-foreground mb-2 h-10 overflow-hidden">
           {product.description}
         </CardDescription>
-        <p className="text-lg font-bold text-primary">IDR {product.price.toFixed(2)}</p>
+        <p className="text-lg font-bold text-primary">{formatCurrencyIDR(product.price)}</p>
         <p className="text-xs text-muted-foreground">
           {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
         </p>

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingBag, Trash2 } from 'lucide-react';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 export default function ShoppingCartPage() {
   const { cart, getCartTotal, clearCart, getCartItemCount } = useAppContext();
@@ -57,7 +58,7 @@ export default function ShoppingCartPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal ({itemCount} items)</span>
-                  <span>IDR {cartTotal.toFixed(2)}</span>
+                  <span>{formatCurrencyIDR(cartTotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
@@ -66,7 +67,7 @@ export default function ShoppingCartPage() {
                 <Separator />
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total</span>
-                  <span>IDR {cartTotal.toFixed(2)}</span>
+                  <span>{formatCurrencyIDR(cartTotal)}</span>
                 </div>
               </CardContent>
               <CardFooter>

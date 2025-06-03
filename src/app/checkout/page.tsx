@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { CreditCard, User, Home, Mail } from 'lucide-react';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 export default function CheckoutPage() {
   const { cart, getCartTotal, placeOrder, getCartItemCount } = useAppContext();
@@ -26,7 +27,7 @@ export default function CheckoutPage() {
   const itemCount = getCartItemCount();
 
   useEffect(() => {
-    if (itemCount === 0 && typeof window !== 'undefined') { // Check if window is defined for client-side routing
+    if (itemCount === 0 && typeof window !== 'undefined') { 
       toast({
         title: "Keranjang Kosong",
         description: "Anda akan dialihkan ke halaman keranjang.",
@@ -36,7 +37,6 @@ export default function CheckoutPage() {
   }, [itemCount, router, toast]);
 
   if (itemCount === 0) {
-    // Menampilkan pesan saat keranjang kosong dan sedang dialihkan
     return (
       <div className="container mx-auto flex h-screen flex-col items-center justify-center py-8">
         <CreditCard className="mb-4 h-16 w-16 text-muted-foreground" />
@@ -58,8 +58,8 @@ export default function CheckoutPage() {
     }
 
     try {
-      await placeOrder({ name, address, paymentMethod }); // Payment method is fixed for now
-      router.push('/transactions'); // Redirect to transaction history or an order confirmation page
+      await placeOrder({ name, address, paymentMethod }); 
+      router.push('/transactions'); 
     } catch (error) {
       toast({
         title: "Pesanan Gagal",
@@ -124,13 +124,13 @@ export default function CheckoutPage() {
               {cart.map(item => (
                 <div key={item.product.id} className="flex justify-between text-sm">
                   <span>{item.product.name} x {item.quantity}</span>
-                  <span>IDR {(item.product.price * item.quantity).toFixed(2)}</span>
+                  <span>{formatCurrencyIDR(item.product.price * item.quantity)}</span>
                 </div>
               ))}
               <Separator />
               <div className="flex justify-between font-semibold">
                 <span>Subtotal</span>
-                <span>IDR {cartTotal.toFixed(2)}</span>
+                <span>{formatCurrencyIDR(cartTotal)}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Pengiriman</span>
@@ -139,7 +139,7 @@ export default function CheckoutPage() {
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span>IDR {cartTotal.toFixed(2)}</span>
+                <span>{formatCurrencyIDR(cartTotal)}</span>
               </div>
             </CardContent>
           </Card>

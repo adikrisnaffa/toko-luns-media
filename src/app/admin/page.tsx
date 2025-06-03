@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, BarChart3, Settings, Users, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
   const { currentUser, products, allTransactions } = useAppContext();
@@ -45,7 +46,7 @@ export default function AdminDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">IDR {(totalIncome - totalExpenses).toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrencyIDR(totalIncome - totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">Net profit from all transactions</p>
           </CardContent>
         </Card>
@@ -55,7 +56,7 @@ export default function AdminDashboardPage() {
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">IDR {totalSales.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrencyIDR(totalSales)}</div>
             <p className="text-xs text-muted-foreground">{allTransactions.filter(tx => tx.type === 'sale').length} orders</p>
           </CardContent>
         </Card>

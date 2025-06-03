@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
+// No need to import formatCurrencyIDR here as it's not directly used for display in this component, only for placeholder text change.
 
 type TransactionType = 'income' | 'expense';
 
@@ -95,7 +96,7 @@ export default function RecordTransactionPage() {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g., 100000.00"
+                placeholder="e.g., 100000 or 100000.50"
                 required
                 min="0.01"
                 step="0.01"

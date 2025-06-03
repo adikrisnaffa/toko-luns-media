@@ -10,9 +10,10 @@ import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, DollarSign, Filter } from 'lucide-react';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 export default function TransactionHistoryPage() {
-  const { allTransactions } = useAppContext(); // Using allTransactions from context now
+  const { allTransactions } = useAppContext(); 
   const [filterDate, setFilterDate] = useState('');
 
   const salesTransactions = useMemo(() => {
@@ -80,7 +81,7 @@ export default function TransactionHistoryPage() {
                     <TableCell>
                       {tx.items.map(item => `${item.name} (x${item.quantity})`).join(', ') || tx.description || '-'}
                     </TableCell>
-                    <TableCell className="text-right">IDR {tx.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatCurrencyIDR(tx.totalAmount)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={getStatusVariant(tx.status)}>{tx.status}</Badge>
                     </TableCell>

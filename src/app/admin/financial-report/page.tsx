@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 export default function FinancialReportPage() {
   const { currentUser, allTransactions } = useAppContext();
@@ -61,7 +62,7 @@ export default function FinancialReportPage() {
             <TrendingUp className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">IDR {financialSummary.totalIncome.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrencyIDR(financialSummary.totalIncome)}</div>
           </CardContent>
         </Card>
         <Card className="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700">
@@ -70,7 +71,7 @@ export default function FinancialReportPage() {
             <TrendingDown className="h-5 w-5 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">IDR {financialSummary.totalExpenses.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrencyIDR(financialSummary.totalExpenses)}</div>
           </CardContent>
         </Card>
         <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
@@ -80,7 +81,7 @@ export default function FinancialReportPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-3xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              IDR {financialSummary.netProfit.toFixed(2)}
+              {formatCurrencyIDR(financialSummary.netProfit)}
             </div>
           </CardContent>
         </Card>
@@ -106,26 +107,29 @@ export default function FinancialReportPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedTransactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell>{format(new Date(tx.date), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell>
-                    <Badge variant={tx.type === 'sale' || tx.type === 'income' ? 'default' : 'destructive'} className={
-                        tx.type === 'income' ? 'bg-green-500 hover:bg-green-600' : 
-                        tx.type === 'expense' ? 'bg-red-500 hover:bg-red-600' : ''
-                    }>
-                      {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {tx.type === 'sale' ? tx.items.map(item => item.name).join(', ') : tx.description}
-                  </TableCell>
-                  <TableCell>{tx.category || '-'}</TableCell>
-                  <TableCell className={`text-right font-semibold ${tx.totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.totalAmount >= 0 ? `+IDR ${tx.totalAmount.toFixed(2)}` : `-IDR ${Math.abs(tx.totalAmount).toFixed(2)}`}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {sortedTransactions.map((tx) => {
+                const formattedAmount = formatCurrencyIDR(Math.abs(tx.totalAmount)).replace('IDR ', '');
+                return (
+                  <TableRow key={tx.id}>
+                    <TableCell>{format(new Date(tx.date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>
+                      <Badge variant={tx.type === 'sale' || tx.type === 'income' ? 'default' : 'destructive'} className={
+                          tx.type === 'income' ? 'bg-green-500 hover:bg-green-600' : 
+                          tx.type === 'expense' ? 'bg-red-500 hover:bg-red-600' : ''
+                      }>
+                        {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {tx.type === 'sale' ? tx.items.map(item => item.name).join(', ') : tx.description}
+                    </TableCell>
+                    <TableCell>{tx.category || '-'}</TableCell>
+                    <TableCell className={`text-right font-semibold ${tx.totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {tx.totalAmount >= 0 ? `+IDR ${formattedAmount}` : `-IDR ${formattedAmount}`}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
           )}

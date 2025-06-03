@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft, UploadCloud } from 'lucide-react';
 import Image from 'next/image';
+import { formatCurrencyIDR } from '@/lib/utils';
 
 const initialFormState: Omit<Product, 'id'> = {
   name: '',
@@ -213,7 +214,7 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">{product.category}</TableCell>
-                    <TableCell className="text-right">IDR {product.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatCurrencyIDR(product.price)}</TableCell>
                     <TableCell className="text-right hidden md:table-cell">{product.stock}</TableCell>
                     <TableCell className="text-center">
                       <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product.id)} className="mr-2 hover:text-primary">
@@ -320,4 +321,3 @@ export default function AdminProductsPage() {
     </div>
   );
 }
-
