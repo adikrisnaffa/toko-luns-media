@@ -36,11 +36,11 @@ interface AppContextType {
   productCategories: string[];
   deleteSaleTransaction: (transactionId: string) => void;
   updateSaleOrder: (transactionId: string, updatedItems: TransactionItem[], originalItems: TransactionItem[]) => Promise<boolean>;
+  addProductsFromExcel: (productsData: Array<Omit<Product, 'id' | 'category' | 'imageUrl'>>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Hardcoded users for demo login
 const demoUsers: User[] = [
   { id: 'admin001', name: 'Admin User', role: 'admin' },
   { id: 'cust001', name: 'Customer User', role: 'customer' },
@@ -70,7 +70,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [productCategories, setProductCategories] = useState<string[]>(["All", ...baseCategories.sort()]);
 
   useEffect(() => {
-    const dynamicCategories = new Set(products.map(p => p.category));
+    const dynamicCategories = new Set(products.map(p => p.category).filter(c => c)); // Filter out empty/null categories
     const allDefinedCategories = new Set([...baseCategories, ...Array.from(dynamicCategories)]);
     setProductCategories(["All", ...Array.from(allDefinedCategories).sort()]);
   }, [products]);
@@ -109,7 +109,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const lowerUsername = username.toLowerCase();
     let userToLogin: User | undefined;
 
-    // Check hardcoded demo users first
     const expectedPassword = userCredentials[lowerUsername];
     if (expectedPassword && password === expectedPassword) {
       if (lowerUsername === 'admin') {
@@ -118,7 +117,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         userToLogin = demoUsers.find(u => u.role === 'customer');
       }
     } else {
-      // Check dynamically registered users
       const registeredPassword = registeredUserCredentials[lowerUsername];
       if (registeredPassword && password === registeredPassword) {
         userToLogin = registeredUsers.find(u => u.name.toLowerCase() === lowerUsername);
@@ -154,7 +152,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const newUser: User = {
         id: `user_${Date.now()}`,
-        name: username, // Store with original casing for display
+        name: username, 
         role: 'customer',
     };
 
@@ -168,7 +166,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('registeredUserCredentials', JSON.stringify(updatedRegisteredCredentials));
     
     toast({ title: "Registration Successful", description: `Welcome, ${newUser.name}! You are now logged in.` });
-    // Automatically log in the new user
     setCurrentUser(newUser);
     localStorage.setItem('loggedInUser', JSON.stringify(newUser));
     router.push('/');
@@ -406,6 +403,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return true;
   };
 
+  const addProductsFromExcel = (productsData: Array<Omit<Product, 'id' | 'category' | 'imageUrl'>>) => {
+    const newProducts: Product[] = productsData.map(prodData => ({
+      id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: prodData.name,
+      description: prodData.description,
+      price: prodData.price,
+      category: '', // Empty category as requested
+      imageUrl: `https://placehold.co/600x400.png?text=${encodeURIComponent(prodData.name.substring(0,20))}`, // Placeholder image
+      stock: prodData.stock,
+      dataAiHint: prodData.dataAiHint || 'product placeholder',
+    }));
+
+    setProducts(prevProducts => [...newProducts, ...prevProducts]);
+    toast({ title: "Products Imported", description: `${newProducts.length} products have been imported successfully from Excel.` });
+  };
+
   const contextValue = { 
       products, cart, transactions, currentUser, login, logout, registerUser,
       addToCart, removeFromCart, updateCartItemQuantity, clearCart, getCartTotal, getCartItemCount, placeOrder, 
@@ -413,7 +426,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addTransactionRecord, allTransactions: transactions,
       addProduct, updateProduct, deleteProduct, getProductById,
       productCategories,
-      deleteSaleTransaction, updateSaleOrder,
+      deleteSaleTransaction, updateSaleOrder, addProductsFromExcel,
       appReady
     };
 
@@ -431,7 +444,3 @@ export const useAppContext = () => {
   }
   return context;
 };
-    
-
-    
-

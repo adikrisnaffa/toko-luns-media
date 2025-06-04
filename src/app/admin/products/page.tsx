@@ -10,13 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { formatCurrencyIDR } from '@/lib/utils';
+import * as XLSX from 'xlsx';
 
 const initialFormState: Omit<Product, 'id'> = {
   name: '',
@@ -28,8 +29,10 @@ const initialFormState: Omit<Product, 'id'> = {
   dataAiHint: '',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminProductsPage() {
-  const { currentUser, products, addProduct, updateProduct, deleteProduct, getProductById, productCategories } = useAppContext();
+  const { currentUser, products, addProduct, updateProduct, deleteProduct, getProductById, productCategories, addProductsFromExcel } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -40,12 +43,13 @@ export default function AdminProductsPage() {
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
       router.push('/');
     }
-    // If !currentUser, AppLayout will handle redirect to /login
   }, [currentUser, router]);
 
   const filteredProducts = useMemo(() => {
@@ -54,6 +58,16 @@ export default function AdminProductsPage() {
       product.category.toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a,b) => a.name.localeCompare(b.name));
   }, [products, searchTerm]);
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage]);
+
+  const currentStartIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
 
   if (!currentUser || currentUser.role !== 'admin') {
     return <div className="flex justify-center items-center h-screen"><p>Loading or Access Denied...</p></div>;
@@ -146,6 +160,96 @@ export default function AdminProductsPage() {
     return ["", ...productCategories.filter(cat => cat && cat !== "All")];
   }, [productCategories]);
 
+  const handleExcelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setExcelFile(e.target.files[0]);
+    } else {
+      setExcelFile(null);
+    }
+  };
+
+  const handleExcelUpload = () => {
+    if (!excelFile) {
+      toast({ title: "No File Selected", description: "Please select an Excel file to upload.", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result;
+        if (!data) throw new Error("File data is empty.");
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        const headers = jsonData[0].map(header => String(header).trim());
+        const expectedHeaders = ["No", "Nama Produk", "Harga (Rp)", "Stock Qty", "Deskripsi", "AI Hint"];
+        
+        if (!expectedHeaders.every((h, i) => headers[i] === h)) {
+           toast({ title: "Invalid Excel Format", description: `Headers do not match. Expected: ${expectedHeaders.join(', ')}. Found: ${headers.join(', ')}`, variant: "destructive" });
+           return;
+        }
+
+        const productsToUpload: Array<Omit<Product, 'id' | 'category' | 'imageUrl'>> = [];
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) continue;
+
+          const name = String(row[1] || '').trim();
+          const price = parseFloat(String(row[2] || '0').replace(/[^0-9.-]+/g,""));
+          const stock = parseInt(String(row[3] || '0'), 10);
+          const description = String(row[4] || '').trim();
+          const dataAiHint = String(row[5] || '').trim();
+
+          if (!name) {
+            toast({ title: "Skipping Row", description: `Row ${i+1}: Nama Produk is missing.`, variant: "warning" });
+            continue;
+          }
+          if (isNaN(price) || price < 0) {
+            toast({ title: "Skipping Row", description: `Row ${i+1}: Invalid Harga for ${name}.`, variant: "warning" });
+            continue;
+          }
+           if (isNaN(stock) || stock < 0) {
+            toast({ title: "Skipping Row", description: `Row ${i+1}: Invalid Stock Qty for ${name}.`, variant: "warning" });
+            continue;
+          }
+
+          productsToUpload.push({
+            name,
+            price,
+            stock,
+            description,
+            dataAiHint: dataAiHint || "product placeholder",
+          });
+        }
+
+        if (productsToUpload.length > 0) {
+          addProductsFromExcel(productsToUpload);
+          setCurrentPage(1); // Reset to first page after upload
+        } else {
+          toast({ title: "No Products Found", description: "No valid products found in the Excel file to upload.", variant: "warning" });
+        }
+        setExcelFile(null);
+        const fileInput = document.getElementById('excelUpload') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+
+      } catch (error) {
+        console.error("Error processing Excel file:", error);
+        toast({ title: "Excel Processing Error", description: "Could not process the Excel file. Ensure it's a valid .xlsx or .xls file and matches the format.", variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(excelFile);
+  };
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -160,10 +264,31 @@ export default function AdminProductsPage() {
                 <p className="mt-1 text-lg text-muted-foreground">Add, edit, or remove products from your store.</p>
             </div>
         </div>
-        <Button onClick={handleAddProduct} className="mt-4 sm:mt-0">
-          <PlusCircle className="mr-2 h-5 w-5" /> Add New Product
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+            <Button onClick={handleAddProduct}>
+              <PlusCircle className="mr-2 h-5 w-5" /> Add New Product
+            </Button>
+        </div>
       </header>
+
+      <Card className="mb-8 shadow">
+        <CardHeader>
+            <CardTitle>Upload Products via Excel</CardTitle>
+            <CardDescription>Upload multiple products using an Excel file (.xlsx, .xls). Ensure the format matches: No, Nama Produk, Harga (Rp), Stock Qty, Deskripsi, AI Hint. Category will be empty.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row gap-4 items-start">
+            <Input
+                id="excelUpload"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleExcelFileChange}
+                className="flex-grow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            <Button onClick={handleExcelUpload} disabled={!excelFile} className="w-full sm:w-auto">
+                <Upload className="mr-2 h-5 w-5" /> Upload Excel
+            </Button>
+        </CardContent>
+      </Card>
 
       <Card className="mb-8 shadow">
         <CardHeader>
@@ -177,7 +302,7 @@ export default function AdminProductsPage() {
                     type="text"
                     placeholder="Search by name or category..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                     className="pl-10 w-full"
                 />
             </div>
@@ -193,9 +318,11 @@ export default function AdminProductsPage() {
           {filteredProducts.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No products found. {searchTerm && "Try adjusting your search."}</p>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">No.</TableHead>
                   <TableHead className="w-16 hidden md:table-cell">Image</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden sm:table-cell">Category</TableHead>
@@ -205,8 +332,9 @@ export default function AdminProductsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product, index) => (
                   <TableRow key={product.id}>
+                    <TableCell>{currentStartIndex + index + 1}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Image src={product.imageUrl || 'https://placehold.co/40x40.png'} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.dataAiHint || "product image"} />
                     </TableCell>
@@ -226,6 +354,32 @@ export default function AdminProductsPage() {
                 ))}
               </TableBody>
             </Table>
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -319,3 +473,6 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+    
+
+    
