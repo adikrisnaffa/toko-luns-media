@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react'; // Added useEffect
+import { useState, useMemo, useEffect } from 'react'; 
 import { useAppContext } from '@/contexts/AppContext';
 import type { Transaction, TransactionItem } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import EditOrderDialog from '@/components/EditOrderDialog'; 
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label'; // Added this import
+import { Label } from '@/components/ui/label'; 
 import { CalendarDays, DollarSign, Filter, Edit3, Trash2 } from 'lucide-react';
 import { formatCurrencyIDR } from '@/lib/utils';
 
@@ -25,18 +25,23 @@ const ClientSideFormattedDate = ({ dateIsoString, formatPattern }: { dateIsoStri
   }, [dateIsoString, formatPattern]);
 
   if (clientDate === null) {
-    // Render a placeholder or nothing until client-side rendering
-    // This ensures server and client initial render match for this part
     return <>...</>; 
   }
 
   return <>{clientDate}</>;
 };
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+  const day = today.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export default function TransactionHistoryPage() {
   const { allTransactions, deleteSaleTransaction, products } = useAppContext(); 
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDate, setFilterDate] = useState(getTodayDateString()); // Default to today's date
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
   const [showEditOrderDialog, setShowEditOrderDialog] = useState(false);
@@ -47,19 +52,14 @@ export default function TransactionHistoryPage() {
     return allTransactions
       .filter(tx => tx.type === 'sale')
       .filter(tx => {
-        if (!filterDate) return true;
-        // Ensure date comparison is robust, e.g., by comparing start of day
-        const txDate = new Date(tx.date);
-        const filterDt = new Date(filterDate);
-        // Adjust for timezone differences if filterDate comes without time
-        const filterStartOfDay = new Date(filterDt.getFullYear(), filterDt.getMonth(), filterDt.getDate());
-        const txStartOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+        if (!filterDate) return true; // Show all if filterDate is empty
         
-        if (filterDate.length === 10) { // Assuming yyyy-MM-dd
-            const inputDate = new Date(filterDate + 'T00:00:00'); // Use local timezone's start of day for comparison
-            return txDate >= inputDate && txDate < new Date(inputDate.getTime() + 24 * 60 * 60 * 1000);
-        }
-        return format(txDate, 'yyyy-MM-dd') === filterDate;
+        const txDate = new Date(tx.date);
+        // Create Date objects for the start and end of the filterDate (local time)
+        const dayStart = new Date(filterDate + 'T00:00:00'); 
+        const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000); 
+
+        return txDate >= dayStart && txDate < dayEnd;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allTransactions, filterDate]);
