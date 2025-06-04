@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // If user is already logged in, redirect to home
+  useEffect(() => {
+    // If user is already logged in, redirect to home
+    if (currentUser) {
+      router.push('/');
+    }
+  }, [currentUser, router]);
+
+  // If currentUser exists, we're likely about to redirect or have redirected.
+  // Render null or a loading indicator to avoid showing the form briefly.
   if (currentUser) {
-    router.push('/');
-    return null; // or a loading indicator
+    return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +38,7 @@ export default function LoginPage() {
     if (!success) {
       setIsLoading(false);
     }
-    // Navigation is handled by login function in context
+    // Navigation is handled by login function in context OR the useEffect above
   };
 
   return (
