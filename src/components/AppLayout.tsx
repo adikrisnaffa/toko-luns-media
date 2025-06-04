@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ShoppingCart, ListOrdered, UserCircle, BarChart3, DollarSign, Settings, LogOut, CreditCard, Package } from 'lucide-react'; // Added Package
+import { Home, ShoppingCart, ListOrdered, UserCircle, BarChart3, DollarSign, Settings, LogOut, CreditCard, Package, UserCheck, UserX } from 'lucide-react'; // Added UserCheck, UserX
 import {
   SidebarProvider,
   Sidebar,
@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarSeparator, // Added SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -44,7 +45,7 @@ const navItems: NavItem[] = [
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { currentUser, getCartItemCount } = useAppContext();
+  const { currentUser, getCartItemCount, switchUserRole } = useAppContext(); // Added switchUserRole
   const cartItemCount = getCartItemCount();
 
   const visibleNavItems = navItems.filter(item => !item.adminOnly || (item.adminOnly && currentUser?.role === 'admin'));
@@ -95,6 +96,26 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
+          <SidebarSeparator className="my-2" />
+          <div className="text-xs text-sidebar-foreground/70 mb-1">Test Role Switcher:</div>
+          <div className="flex flex-col gap-1">
+            <Button 
+              variant={currentUser?.role === 'admin' ? "default" : "outline"} 
+              size="sm"
+              className="w-full justify-start text-xs"
+              onClick={() => switchUserRole('admin')}
+            >
+              <UserCheck className="mr-2 h-3 w-3" /> Switch to Admin
+            </Button>
+            <Button 
+              variant={currentUser?.role === 'customer' ? "default" : "outline"} 
+              size="sm"
+              className="w-full justify-start text-xs"
+              onClick={() => switchUserRole('customer')}
+            >
+               <UserX className="mr-2 h-3 w-3" /> Switch to Customer
+            </Button>
+          </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -130,3 +151,4 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+

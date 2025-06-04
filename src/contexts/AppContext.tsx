@@ -31,6 +31,7 @@ interface AppContextType {
   productCategories: string[];
   deleteSaleTransaction: (transactionId: string) => void;
   updateSaleOrder: (transactionId: string, updatedItems: TransactionItem[], originalItems: TransactionItem[]) => Promise<boolean>;
+  switchUserRole: (role: 'admin' | 'customer') => void; // Added this
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -40,6 +41,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  // Default user is admin for now, can be changed via switchUserRole
   const [currentUser, setCurrentUser] = useState<User | null>({ id: 'user123', name: 'Demo User', role: 'admin' }); 
 
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
@@ -54,6 +56,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const categories = new Set(products.map(p => p.category));
     setProductCategories(["All",...Array.from(categories).sort()]);
   }, [products]);
+
+  const switchUserRole = (role: 'admin' | 'customer') => {
+    setCurrentUser(prevUser => {
+      if (prevUser) {
+        return { ...prevUser, role: role };
+      }
+      // If no user, create a default one with the specified role
+      return { id: 'user123', name: 'Demo User', role: role };
+    });
+    toast({ title: "User Role Switched", description: `Now acting as: ${role}` });
+  };
 
 
   const addToCart = (product: Product, quantity: number = 1) => {
@@ -232,22 +245,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const newTotalAmount = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // Create a temporary map of current product stocks
     const tempProductStock = new Map<string, number>();
     products.forEach(p => tempProductStock.set(p.id, p.stock));
 
-    // 1. Tentatively revert stock from original items
     for (const origItem of originalItems) {
       const currentTempStock = tempProductStock.get(origItem.productId) ?? 0;
       tempProductStock.set(origItem.productId, currentTempStock + origItem.quantity);
     }
     
-    // 2. Tentatively apply stock for new/updated items and validate
     for (const newItem of updatedItems) {
       const productDetails = products.find(p => p.id === newItem.productId);
       if (!productDetails) {
           toast({ title: "Product Error", description: `Product ${newItem.name} not found.`, variant: "destructive" });
-          return false; // Should not happen if data is consistent
+          return false; 
       }
       const availableStockForNewItem = tempProductStock.get(newItem.productId) ?? 0;
       if (newItem.quantity < 0) {
@@ -261,16 +271,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       tempProductStock.set(newItem.productId, availableStockForNewItem - newItem.quantity);
     }
 
-    // If all validations pass, commit stock changes
     setProducts(prevProd => prevProd.map(p => {
       const finalStock = tempProductStock.get(p.id);
       return finalStock !== undefined ? { ...p, stock: finalStock } : p;
     }));
 
-    // Update the transaction
     setTransactions(prevTx => prevTx.map(tx => 
       tx.id === transactionId 
-        ? { ...tx, items: updatedItems, totalAmount: newTotalAmount, date: new Date().toISOString() } // Also update date
+        ? { ...tx, items: updatedItems, totalAmount: newTotalAmount, date: new Date().toISOString() } 
         : tx
     ));
 
@@ -287,7 +295,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addTransactionRecord, allTransactions: transactions,
       addProduct, updateProduct, deleteProduct, getProductById,
       productCategories,
-      deleteSaleTransaction, updateSaleOrder
+      deleteSaleTransaction, updateSaleOrder,
+      switchUserRole // Added this
     }}>
       {children}
     </AppContext.Provider>
@@ -301,5 +310,4 @@ export const useAppContext = () => {
   }
   return context;
 };
-
     
