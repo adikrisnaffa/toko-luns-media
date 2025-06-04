@@ -11,10 +11,12 @@ import { mockProducts, mockTransactions } from '@/lib/data';
 interface AppContextType {
   products: Product[];
   cart: CartItem[];
-  transactions: Transaction[];
+  transactions: Transaction[]; // Combined transactions
   currentUser: User | null;
+  appReady: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  registerUser: (username: string, password: string) => Promise<boolean>;
   addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
@@ -26,7 +28,7 @@ interface AppContextType {
   fetchRecommendations: () => Promise<void>;
   isRecommendationsLoading: boolean;
   addTransactionRecord: (record: Omit<Transaction, 'id' | 'date' | 'items' | 'status'> & { amount: number }) => void;
-  allTransactions: Transaction[];
+  allTransactions: Transaction[]; // For financial report, includes all types
   addProduct: (productData: Omit<Product, 'id'>) => void;
   updateProduct: (productId: string, productData: Partial<Omit<Product, 'id'>>) => void;
   deleteProduct: (productId: string) => void;
@@ -58,6 +60,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentUser, setCurrentUser] = useState<User | null>(null); 
   const [appReady, setAppReady] = useState(false);
 
+  const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
+  const [registeredUserCredentials, setRegisteredUserCredentials] = useState<Record<string, string>>({});
+
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false);
 
@@ -72,7 +77,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [products]);
 
   useEffect(() => {
-    // Check for logged-in user in localStorage on initial load
     const storedUserJson = localStorage.getItem('loggedInUser');
     if (storedUserJson) {
       try {
@@ -83,27 +87,53 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.removeItem('loggedInUser');
       }
     }
-    setAppReady(true); // Indicate that the app is ready after checking localStorage
+    
+    const storedRegisteredUsersJson = localStorage.getItem('registeredUsers');
+    if (storedRegisteredUsersJson) {
+        try {
+            setRegisteredUsers(JSON.parse(storedRegisteredUsersJson));
+        } catch (e) { console.error("Error parsing stored registered users:", e); }
+    }
+
+    const storedRegisteredCredentialsJson = localStorage.getItem('registeredUserCredentials');
+    if (storedRegisteredCredentialsJson) {
+        try {
+            setRegisteredUserCredentials(JSON.parse(storedRegisteredCredentialsJson));
+        } catch (e) { console.error("Error parsing stored registered credentials:", e); }
+    }
+
+    setAppReady(true);
   }, []);
 
+
   const login = async (username: string, password: string): Promise<boolean> => {
-    const expectedPassword = userCredentials[username.toLowerCase()];
+    const lowerUsername = username.toLowerCase();
+    let userToLogin: User | undefined;
+
+    // Check hardcoded demo users first
+    const expectedPassword = userCredentials[lowerUsername];
     if (expectedPassword && password === expectedPassword) {
-      let userToLogin: User | undefined;
-      if (username.toLowerCase() === 'admin') {
+      if (lowerUsername === 'admin') {
         userToLogin = demoUsers.find(u => u.role === 'admin');
-      } else if (username.toLowerCase() === 'customer') {
+      } else if (lowerUsername === 'customer') {
         userToLogin = demoUsers.find(u => u.role === 'customer');
       }
-
-      if (userToLogin) {
-        setCurrentUser(userToLogin);
-        localStorage.setItem('loggedInUser', JSON.stringify(userToLogin));
-        toast({ title: 'Login Successful', description: `Welcome, ${userToLogin.name}!` });
-        router.push('/');
-        return true;
+    } else {
+      // Check dynamically registered users
+      const registeredPassword = registeredUserCredentials[lowerUsername];
+      if (registeredPassword && password === registeredPassword) {
+        userToLogin = registeredUsers.find(u => u.name.toLowerCase() === lowerUsername);
       }
     }
+
+    if (userToLogin) {
+      setCurrentUser(userToLogin);
+      localStorage.setItem('loggedInUser', JSON.stringify(userToLogin));
+      toast({ title: 'Login Successful', description: `Welcome, ${userToLogin.name}!` });
+      router.push('/');
+      return true;
+    }
+    
     toast({ title: 'Login Failed', description: 'Invalid username or password.', variant: 'destructive' });
     return false;
   };
@@ -111,9 +141,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('loggedInUser');
-    setCart([]); // Clear cart on logout
+    setCart([]);
     toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
     router.push('/login');
+  };
+
+  const registerUser = async (username: string, password: string): Promise<boolean> => {
+    const lowerUsername = username.toLowerCase();
+    if (userCredentials[lowerUsername] || registeredUserCredentials[lowerUsername]) {
+        toast({ title: "Registration Failed", description: "Username already exists.", variant: "destructive" });
+        return false;
+    }
+
+    const newUser: User = {
+        id: `user_${Date.now()}`,
+        name: username, // Store with original casing for display
+        role: 'customer',
+    };
+
+    const updatedRegisteredUsers = [...registeredUsers, newUser];
+    const updatedRegisteredCredentials = { ...registeredUserCredentials, [lowerUsername]: password };
+
+    setRegisteredUsers(updatedRegisteredUsers);
+    setRegisteredUserCredentials(updatedRegisteredCredentials);
+
+    localStorage.setItem('registeredUsers', JSON.stringify(updatedRegisteredUsers));
+    localStorage.setItem('registeredUserCredentials', JSON.stringify(updatedRegisteredCredentials));
+    
+    toast({ title: "Registration Successful", description: `Welcome, ${newUser.name}! You are now logged in.` });
+    // Automatically log in the new user
+    setCurrentUser(newUser);
+    localStorage.setItem('loggedInUser', JSON.stringify(newUser));
+    router.push('/');
+    return true;
   };
 
 
@@ -182,10 +242,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       totalAmount: getCartTotal(),
       status: 'Completed',
       type: 'sale',
-      description: `Order by ${orderDetails.name}`,
-      // Associate order with user - for simplicity, just using name. In real app, use userId.
-      // customerId: currentUser.id, 
-      // customerName: currentUser.name, 
+      description: `Order by ${orderDetails.name} (${currentUser.name})`,
     };
     setTransactions(prev => [newTransaction, ...prev]);
     
@@ -230,7 +287,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (cart.length > 0 && currentUser) { // Only fetch if logged in
+      if (cart.length > 0 && currentUser) { 
         fetchRecommendations();
       } else {
         setRecommendedProducts([]);
@@ -351,14 +408,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const contextValue = { 
-      products, cart, transactions, currentUser, login, logout,
+      products, cart, transactions, currentUser, login, logout, registerUser,
       addToCart, removeFromCart, updateCartItemQuantity, clearCart, getCartTotal, getCartItemCount, placeOrder, 
       recommendedProducts, fetchRecommendations, isRecommendationsLoading,
       addTransactionRecord, allTransactions: transactions,
       addProduct, updateProduct, deleteProduct, getProductById,
       productCategories,
       deleteSaleTransaction, updateSaleOrder,
-      appReady // Expose appReady
+      appReady
     };
 
   return (
@@ -375,4 +432,6 @@ export const useAppContext = () => {
   }
   return context;
 };
+    
+
     

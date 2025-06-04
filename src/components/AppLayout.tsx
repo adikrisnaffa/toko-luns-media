@@ -3,9 +3,9 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
-import { useEffect } from 'react'; // Added useEffect
-import { Home, ShoppingCart, ListOrdered, Settings, LogOut, CreditCard, Package, BarChart3, DollarSign, LogIn } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation'; 
+import { useEffect } from 'react'; 
+import { Home, ShoppingCart, ListOrdered, Settings, LogOut, CreditCard, Package, BarChart3, DollarSign, LogIn, UserPlus } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -17,7 +17,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,7 +32,8 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   adminOnly?: boolean;
-  requiresLogin?: boolean; // To hide items if not logged in
+  requiresLogin?: boolean; 
+  hideWhenLoggedIn?: boolean; // To hide login/register links when logged in
 }
 
 const navItems: NavItem[] = [
@@ -45,6 +45,8 @@ const navItems: NavItem[] = [
   { href: '/admin/products', label: 'Manage Products', icon: Package, adminOnly: true, requiresLogin: true },
   { href: '/admin/record-transaction', label: 'Record Transaction', icon: DollarSign, adminOnly: true, requiresLogin: true },
   { href: '/admin/financial-report', label: 'Financial Report', icon: BarChart3, adminOnly: true, requiresLogin: true },
+  { href: '/login', label: 'Login', icon: LogIn, requiresLogin: false, hideWhenLoggedIn: true },
+  { href: '/register', label: 'Register', icon: UserPlus, requiresLogin: false, hideWhenLoggedIn: true },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -54,23 +56,24 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const cartItemCount = getCartItemCount();
 
   useEffect(() => {
-    if (appReady) { // Only run redirects after app context is ready (localStorage checked)
-      if (!currentUser && pathname !== '/login') {
+    if (appReady) { 
+      const isAuthPage = pathname === '/login' || pathname === '/register';
+      if (!currentUser && !isAuthPage) {
         router.push('/login');
-      } else if (currentUser && pathname === '/login') {
+      } else if (currentUser && isAuthPage) {
         router.push('/');
       }
     }
   }, [currentUser, pathname, router, appReady]);
 
   const visibleNavItems = navItems.filter(item => {
+    if (item.hideWhenLoggedIn && currentUser) return false;
     if (item.requiresLogin && !currentUser) return false;
     if (item.adminOnly && currentUser?.role !== 'admin') return false;
     return true;
   });
   
-  // Render loading state or null if app is not ready or redirecting
-  if (!appReady || (!currentUser && pathname !== '/login')) {
+  if (!appReady || (!currentUser && !(pathname === '/login' || pathname === '/register'))) {
     return (
         <div className="flex h-screen items-center justify-center">
             <div className="flex flex-col items-center space-y-4">
@@ -81,9 +84,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
   
-  // If user is null and we are already on login page, render children (login page)
-  if (!currentUser && pathname === '/login') {
-    return <>{children}<Toaster /></>; // Ensure Toaster is available for login page errors
+  if (!currentUser && (pathname === '/login' || pathname === '/register')) {
+    return <>{children}<Toaster /></>; 
   }
 
 
@@ -121,7 +123,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <>
               <div className="flex items-center gap-2">
                 <Avatar>
-                  <AvatarImage src={`https://placehold.co/40x40.png?text=${currentUser.name.charAt(0)}`} alt={currentUser.name} data-ai-hint="user avatar" />
+                  <AvatarImage src={`https://placehold.co/40x40.png?text=${currentUser.name.charAt(0)}`} alt={currentUser.name} data-ai-hint="user avatar"/>
                   <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
@@ -135,14 +137,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </Button>
             </>
           ) : (
-            <Link href="/login" legacyBehavior passHref>
-                 <Button variant="outline" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login
-                </Button>
-            </Link>
+            <>
+              <Link href="/login" legacyBehavior passHref>
+                   <Button variant="outline" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground mb-2">
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Login
+                  </Button>
+              </Link>
+              <Link href="/register" legacyBehavior passHref>
+                   <Button variant="outline" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Register
+                  </Button>
+              </Link>
+            </>
           )}
-          {/* Role switcher removed */}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -182,3 +191,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
+
+    

@@ -9,34 +9,40 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn, Key, User } from 'lucide-react';
+import { UserPlus, Key, User } from 'lucide-react';
 import { Logo } from '@/components/icons';
 
-export default function LoginPage() {
-  const { login, currentUser } = useAppContext();
+export default function RegisterPage() {
+  const { registerUser, currentUser } = useAppContext();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // const [confirmPassword, setConfirmPassword] = useState(''); // Optional: for password confirmation
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // If user is already logged in, redirect to home
     if (currentUser) {
       router.push('/');
     }
   }, [currentUser, router]);
 
-  if (currentUser && typeof window !== 'undefined' && window.location.pathname === '/login') {
+   if (currentUser && typeof window !== 'undefined' && window.location.pathname === '/register') {
     return null;
   }
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // if (password !== confirmPassword) { // Optional: password confirmation check
+    //   toast({ title: "Passwords do not match", variant: "destructive" });
+    //   return;
+    // }
     setIsLoading(true);
-    const success = await login(username, password);
+    const success = await registerUser(username, password);
     if (!success) {
-      setIsLoading(false);
+      setIsLoading(false); // Only set to false if registration failed, otherwise login handles redirect
     }
+    // Navigation is handled by registerUser on success OR the useEffect above
   };
 
   return (
@@ -48,9 +54,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold flex items-center justify-center">
-            <LogIn className="mr-2 h-8 w-8 text-primary" /> Login
+            <UserPlus className="mr-2 h-8 w-8 text-primary" /> Register
           </CardTitle>
-          <CardDescription>Enter your credentials to access your account.</CardDescription>
+          <CardDescription>Create a new account to start shopping.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -64,7 +70,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="username"
+                placeholder="Choose a username"
                 required
                 disabled={isLoading}
               />
@@ -79,28 +85,38 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="password"
+                placeholder="Create a password"
                 required
                 disabled={isLoading}
               />
             </div>
+            {/* Optional: Confirm Password
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                required
+              />
+            </div>
+            */}
             <Button type="submit" className="w-full" disabled={isLoading} size="lg">
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
               ) : (
                 <>
-                  <LogIn className="mr-2 h-5 w-5" /> Login
+                  <UserPlus className="mr-2 h-5 w-5" /> Register
                 </>
               )}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Hint: Use 'admin'/'adminpass' or 'customer'/'customerpass'.
-          </p>
-          <p className="mt-2 text-center text-sm">
-            Don't have an account?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
-              Register here
+          <p className="mt-6 text-center text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Login here
             </Link>
           </p>
         </CardContent>
