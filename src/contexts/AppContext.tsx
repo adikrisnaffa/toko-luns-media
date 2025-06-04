@@ -1,11 +1,11 @@
 
 "use client";
 
-import type { Product, CartItem, Transaction, User } from '@/lib/types';
+import type { Product, CartItem, Transaction, User, TransactionItem } from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { getProductRecommendations, type ProductRecommendationsOutput } from '@/ai/flows/product-recommendations';
 import { useToast } from '@/hooks/use-toast';
-import { mockProducts, mockTransactions, productCategories as initialProductCategories } from '@/lib/data'; // Renamed to avoid conflict
+import { mockProducts, mockTransactions } from '@/lib/data'; 
 
 interface AppContextType {
   products: Product[];
@@ -29,6 +29,8 @@ interface AppContextType {
   deleteProduct: (productId: string) => void;
   getProductById: (productId: string) => Product | undefined;
   productCategories: string[];
+  deleteSaleTransaction: (transactionId: string) => void;
+  updateSaleOrder: (transactionId: string, updatedItems: TransactionItem[], originalItems: TransactionItem[]) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,20 +40,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [currentUser, setCurrentUser] = useState<User | null>({ id: 'user123', name: 'Demo User', role: 'admin' }); // Mock admin
+  const [currentUser, setCurrentUser] = useState<User | null>({ id: 'user123', name: 'Demo User', role: 'admin' }); 
 
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false);
 
-  // Derive product categories from the current products state
   const [productCategories, setProductCategories] = useState<string[]>(() => {
     const categories = new Set(products.map(p => p.category));
-    return Array.from(categories).sort();
+    return ["All", ...Array.from(categories).sort()];
   });
 
   useEffect(() => {
     const categories = new Set(products.map(p => p.category));
-    setProductCategories(Array.from(categories).sort());
+    setProductCategories(["All",...Array.from(categories).sort()]);
   }, [products]);
 
 
@@ -81,7 +82,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         item.product.id === productId
           ? { ...item, quantity: Math.max(0, Math.min(quantity, item.product.stock)) }
           : item
-      ).filter(item => item.quantity > 0) // Remove if quantity is 0
+      ).filter(item => item.quantity > 0) 
     );
   };
 
@@ -202,6 +203,81 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return products.find(p => p.id === productId);
   };
 
+  const deleteSaleTransaction = (transactionId: string) => {
+    setTransactions(prevTransactions => {
+      const transactionToDelete = prevTransactions.find(tx => tx.id === transactionId);
+      if (transactionToDelete && transactionToDelete.type === 'sale') {
+        // Revert stock
+        setProducts(prevProducts => {
+          return prevProducts.map(p => {
+            const itemInTransaction = transactionToDelete.items.find(item => item.productId === p.id);
+            if (itemInTransaction) {
+              return { ...p, stock: p.stock + itemInTransaction.quantity };
+            }
+            return p;
+          });
+        });
+      }
+      toast({ title: "Order Deleted", description: `Order ${transactionId.substring(0,12)}... has been deleted.`, variant: "destructive" });
+      return prevTransactions.filter(tx => tx.id !== transactionId);
+    });
+  };
+
+  const updateSaleOrder = async (transactionId: string, updatedItems: TransactionItem[], originalItems: TransactionItem[]): Promise<boolean> => {
+    const transactionToUpdate = transactions.find(tx => tx.id === transactionId);
+    if (!transactionToUpdate || transactionToUpdate.type !== 'sale') {
+      toast({ title: "Error", description: "Sale transaction not found.", variant: "destructive" });
+      return false;
+    }
+
+    const newTotalAmount = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Create a temporary map of current product stocks
+    const tempProductStock = new Map<string, number>();
+    products.forEach(p => tempProductStock.set(p.id, p.stock));
+
+    // 1. Tentatively revert stock from original items
+    for (const origItem of originalItems) {
+      const currentTempStock = tempProductStock.get(origItem.productId) ?? 0;
+      tempProductStock.set(origItem.productId, currentTempStock + origItem.quantity);
+    }
+    
+    // 2. Tentatively apply stock for new/updated items and validate
+    for (const newItem of updatedItems) {
+      const productDetails = products.find(p => p.id === newItem.productId);
+      if (!productDetails) {
+          toast({ title: "Product Error", description: `Product ${newItem.name} not found.`, variant: "destructive" });
+          return false; // Should not happen if data is consistent
+      }
+      const availableStockForNewItem = tempProductStock.get(newItem.productId) ?? 0;
+      if (newItem.quantity < 0) {
+           toast({ title: "Validation Error", description: `Quantity for ${newItem.name} cannot be negative.`, variant: "destructive" });
+           return false;
+      }
+      if (newItem.quantity > availableStockForNewItem) {
+        toast({ title: "Stock Error", description: `Not enough stock for ${newItem.name}. Available after reverting old order: ${availableStockForNewItem}, Requested: ${newItem.quantity}`, variant: "destructive" });
+        return false; 
+      }
+      tempProductStock.set(newItem.productId, availableStockForNewItem - newItem.quantity);
+    }
+
+    // If all validations pass, commit stock changes
+    setProducts(prevProd => prevProd.map(p => {
+      const finalStock = tempProductStock.get(p.id);
+      return finalStock !== undefined ? { ...p, stock: finalStock } : p;
+    }));
+
+    // Update the transaction
+    setTransactions(prevTx => prevTx.map(tx => 
+      tx.id === transactionId 
+        ? { ...tx, items: updatedItems, totalAmount: newTotalAmount, date: new Date().toISOString() } // Also update date
+        : tx
+    ));
+
+    toast({ title: "Order Updated", description: `Order ${transactionId.substring(0,12)}... has been updated.` });
+    return true;
+  };
+
 
   return (
     <AppContext.Provider value={{ 
@@ -210,7 +286,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       recommendedProducts, fetchRecommendations, isRecommendationsLoading,
       addTransactionRecord, allTransactions: transactions,
       addProduct, updateProduct, deleteProduct, getProductById,
-      productCategories
+      productCategories,
+      deleteSaleTransaction, updateSaleOrder
     }}>
       {children}
     </AppContext.Provider>
@@ -224,3 +301,5 @@ export const useAppContext = () => {
   }
   return context;
 };
+
+    

@@ -3,18 +3,26 @@
 
 import { useState, useMemo } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
-import type { Transaction } from '@/lib/types';
+import type { Transaction, TransactionItem } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import EditOrderDialog from '@/components/EditOrderDialog'; 
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, DollarSign, Filter } from 'lucide-react';
+import { CalendarDays, DollarSign, Filter, Edit3, Trash2 } from 'lucide-react';
 import { formatCurrencyIDR } from '@/lib/utils';
 
 export default function TransactionHistoryPage() {
-  const { allTransactions } = useAppContext(); 
+  const { allTransactions, deleteSaleTransaction, products } = useAppContext(); 
   const [filterDate, setFilterDate] = useState('');
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const [showEditOrderDialog, setShowEditOrderDialog] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
 
   const salesTransactions = useMemo(() => {
     return allTransactions
@@ -35,6 +43,24 @@ export default function TransactionHistoryPage() {
     }
   };
 
+  const handleDeleteClick = (transactionId: string) => {
+    setDeletingTransactionId(transactionId);
+    setShowDeleteConfirmDialog(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingTransactionId) {
+      deleteSaleTransaction(deletingTransactionId);
+    }
+    setShowDeleteConfirmDialog(false);
+    setDeletingTransactionId(null);
+  };
+
+  const handleEditClick = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setShowEditOrderDialog(true);
+  };
+
   return (
     <div className="container mx-auto py-8">
       <header className="mb-8 text-center">
@@ -45,7 +71,7 @@ export default function TransactionHistoryPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl">Your Orders</CardTitle>
-          <CardDescription>A list of all your past orders.</CardDescription>
+          <CardDescription>A list of all your past orders. You can edit quantities or delete orders.</CardDescription>
           <div className="mt-4">
             <Label htmlFor="filter-date" className="flex items-center text-sm font-medium mb-1">
                 <Filter className="mr-2 h-4 w-4 text-muted-foreground" /> Filter by Date
@@ -71,6 +97,7 @@ export default function TransactionHistoryPage() {
                   <TableHead>Items</TableHead>
                   <TableHead className="text-right"><DollarSign className="inline-block mr-1 h-4 w-4" />Total</TableHead>
                   <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -85,6 +112,14 @@ export default function TransactionHistoryPage() {
                     <TableCell className="text-center">
                       <Badge variant={getStatusVariant(tx.status)}>{tx.status}</Badge>
                     </TableCell>
+                    <TableCell className="text-center space-x-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleEditClick(tx)} className="hover:text-primary">
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(tx.id)} className="hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -92,6 +127,33 @@ export default function TransactionHistoryPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this order? This action will also attempt to restock the items and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirmDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {editingTransaction && (
+        <EditOrderDialog
+          transaction={editingTransaction}
+          isOpen={showEditOrderDialog}
+          onClose={() => {
+            setShowEditOrderDialog(false);
+            setEditingTransaction(null);
+          }}
+          allProducts={products}
+        />
+      )}
     </div>
   );
 }
@@ -101,3 +163,4 @@ const Label = ({ htmlFor, children, className }: { htmlFor: string, children: Re
   <label htmlFor={htmlFor} className={className}>{children}</label>
 );
 
+    
