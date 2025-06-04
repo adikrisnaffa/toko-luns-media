@@ -15,13 +15,18 @@ export default function AdminDashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (currentUser?.role !== 'admin' && typeof window !== 'undefined') {
+    // If not logged in, AppLayout will redirect to /login.
+    // If logged in but not admin, redirect to home.
+    if (currentUser && currentUser.role !== 'admin') {
       router.push('/');
     }
   }, [currentUser, router]);
 
-  if (currentUser?.role !== 'admin') {
-    return <div className="flex justify-center items-center h-screen"><p>Access Denied. Redirecting...</p></div>;
+  // This check is important for initial render before useEffect runs or if AppLayout redirect hasn't happened yet
+  if (!currentUser || currentUser.role !== 'admin') {
+    // AppLayout will handle redirect to /login if !currentUser
+    // If currentUser exists but not admin, this will show while redirecting
+    return <div className="flex justify-center items-center h-screen"><p>Loading or Access Denied...</p></div>;
   }
 
   const totalSales = allTransactions.filter(tx => tx.type === 'sale').reduce((sum, tx) => sum + tx.totalAmount, 0);

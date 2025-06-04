@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
-// No need to import formatCurrencyIDR here as it's not directly used for display in this component, only for placeholder text change.
 
 type TransactionType = 'income' | 'expense';
 
@@ -27,14 +26,15 @@ export default function RecordTransactionPage() {
   const [category, setCategory] = useState('');
 
   useEffect(() => {
-    if (currentUser?.role !== 'admin' && typeof window !== 'undefined') {
+    if (currentUser && currentUser.role !== 'admin') {
       router.push('/');
     }
+    // If !currentUser, AppLayout will handle redirect to /login
   }, [currentUser, router]);
 
 
-  if (currentUser?.role !== 'admin') {
-    return <div className="flex justify-center items-center h-screen"><p>Access Denied. Redirecting...</p></div>;
+  if (!currentUser || currentUser.role !== 'admin') {
+    return <div className="flex justify-center items-center h-screen"><p>Loading or Access Denied...</p></div>;
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,7 +62,7 @@ export default function RecordTransactionPage() {
     setAmount('');
     setDescription('');
     setCategory('');
-    router.push('/admin/financial-report'); // Navigate to report after recording
+    router.push('/admin/financial-report'); 
   };
 
   return (

@@ -3,6 +3,7 @@
 
 import type { Product, CartItem, Transaction, User, TransactionItem } from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { getProductRecommendations, type ProductRecommendationsOutput } from '@/ai/flows/product-recommendations';
 import { useToast } from '@/hooks/use-toast';
 import { mockProducts, mockTransactions } from '@/lib/data'; 
@@ -12,6 +13,8 @@ interface AppContextType {
   cart: CartItem[];
   transactions: Transaction[];
   currentUser: User | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
   addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateCartItemQuantity: (productId: string, quantity: number) => void;
@@ -31,18 +34,29 @@ interface AppContextType {
   productCategories: string[];
   deleteSaleTransaction: (transactionId: string) => void;
   updateSaleOrder: (transactionId: string, updatedItems: TransactionItem[], originalItems: TransactionItem[]) => Promise<boolean>;
-  switchUserRole: (role: 'admin' | 'customer') => void; // Added this
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Hardcoded users for demo login
+const demoUsers: User[] = [
+  { id: 'admin001', name: 'Admin User', role: 'admin' },
+  { id: 'cust001', name: 'Customer User', role: 'customer' },
+];
+const userCredentials: Record<string, string> = {
+  admin: 'adminpass',
+  customer: 'customerpass',
+};
+
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { toast } = useToast();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  // Default user is admin for now, can be changed via switchUserRole
-  const [currentUser, setCurrentUser] = useState<User | null>({ id: 'user123', name: 'Demo User', role: 'admin' }); 
+  const [currentUser, setCurrentUser] = useState<User | null>(null); 
+  const [appReady, setAppReady] = useState(false);
 
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false);
@@ -57,19 +71,58 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setProductCategories(["All",...Array.from(categories).sort()]);
   }, [products]);
 
-  const switchUserRole = (role: 'admin' | 'customer') => {
-    setCurrentUser(prevUser => {
-      if (prevUser) {
-        return { ...prevUser, role: role };
+  useEffect(() => {
+    // Check for logged-in user in localStorage on initial load
+    const storedUserJson = localStorage.getItem('loggedInUser');
+    if (storedUserJson) {
+      try {
+        const storedUser: User = JSON.parse(storedUserJson);
+        setCurrentUser(storedUser);
+      } catch (e) {
+        console.error("Error parsing stored user:", e);
+        localStorage.removeItem('loggedInUser');
       }
-      // If no user, create a default one with the specified role
-      return { id: 'user123', name: 'Demo User', role: role };
-    });
-    toast({ title: "User Role Switched", description: `Now acting as: ${role}` });
+    }
+    setAppReady(true); // Indicate that the app is ready after checking localStorage
+  }, []);
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    const expectedPassword = userCredentials[username.toLowerCase()];
+    if (expectedPassword && password === expectedPassword) {
+      let userToLogin: User | undefined;
+      if (username.toLowerCase() === 'admin') {
+        userToLogin = demoUsers.find(u => u.role === 'admin');
+      } else if (username.toLowerCase() === 'customer') {
+        userToLogin = demoUsers.find(u => u.role === 'customer');
+      }
+
+      if (userToLogin) {
+        setCurrentUser(userToLogin);
+        localStorage.setItem('loggedInUser', JSON.stringify(userToLogin));
+        toast({ title: 'Login Successful', description: `Welcome, ${userToLogin.name}!` });
+        router.push('/');
+        return true;
+      }
+    }
+    toast({ title: 'Login Failed', description: 'Invalid username or password.', variant: 'destructive' });
+    return false;
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('loggedInUser');
+    setCart([]); // Clear cart on logout
+    toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+    router.push('/login');
   };
 
 
   const addToCart = (product: Product, quantity: number = 1) => {
+    if (!currentUser) {
+      toast({ title: "Not Logged In", description: "Please login to add items to cart.", variant: "destructive"});
+      router.push('/login');
+      return;
+    }
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.product.id === product.id);
       if (existingItem) {
@@ -113,6 +166,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const placeOrder = async (orderDetails: { name: string; address: string; paymentMethod: string }) => {
+    if (!currentUser) {
+      toast({ title: "Not Logged In", description: "Please login to place an order.", variant: "destructive"});
+      router.push('/login');
+      return;
+    }
+    if (cart.length === 0) {
+      toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive"});
+      return;
+    }
     const newTransaction: Transaction = {
       id: `txn_sale_${Date.now()}`,
       date: new Date().toISOString(),
@@ -121,6 +183,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       status: 'Completed',
       type: 'sale',
       description: `Order by ${orderDetails.name}`,
+      // Associate order with user - for simplicity, just using name. In real app, use userId.
+      // customerId: currentUser.id, 
+      // customerName: currentUser.name, 
     };
     setTransactions(prev => [newTransaction, ...prev]);
     
@@ -165,14 +230,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (cart.length > 0) {
+      if (cart.length > 0 && currentUser) { // Only fetch if logged in
         fetchRecommendations();
       } else {
         setRecommendedProducts([]);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [cart, fetchRecommendations]);
+  }, [cart, fetchRecommendations, currentUser]);
 
   const addTransactionRecord = (record: Omit<Transaction, 'id' | 'date' | 'items' | 'status'> & { amount: number }) => {
     const newRecord: Transaction = {
@@ -220,7 +285,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setTransactions(prevTransactions => {
       const transactionToDelete = prevTransactions.find(tx => tx.id === transactionId);
       if (transactionToDelete && transactionToDelete.type === 'sale') {
-        // Revert stock
         setProducts(prevProducts => {
           return prevProducts.map(p => {
             const itemInTransaction = transactionToDelete.items.find(item => item.productId === p.id);
@@ -286,18 +350,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return true;
   };
 
-
-  return (
-    <AppContext.Provider value={{ 
-      products, cart, transactions, currentUser, 
+  const contextValue = { 
+      products, cart, transactions, currentUser, login, logout,
       addToCart, removeFromCart, updateCartItemQuantity, clearCart, getCartTotal, getCartItemCount, placeOrder, 
       recommendedProducts, fetchRecommendations, isRecommendationsLoading,
       addTransactionRecord, allTransactions: transactions,
       addProduct, updateProduct, deleteProduct, getProductById,
       productCategories,
       deleteSaleTransaction, updateSaleOrder,
-      switchUserRole // Added this
-    }}>
+      appReady // Expose appReady
+    };
+
+  return (
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

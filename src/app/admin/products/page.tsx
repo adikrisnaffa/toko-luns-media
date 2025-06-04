@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft, UploadCloud } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Package, Search, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { formatCurrencyIDR } from '@/lib/utils';
 
@@ -42,9 +42,10 @@ export default function AdminProductsPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
-    if (currentUser?.role !== 'admin' && typeof window !== 'undefined') {
+    if (currentUser && currentUser.role !== 'admin') {
       router.push('/');
     }
+    // If !currentUser, AppLayout will handle redirect to /login
   }, [currentUser, router]);
 
   const filteredProducts = useMemo(() => {
@@ -54,8 +55,8 @@ export default function AdminProductsPage() {
     ).sort((a,b) => a.name.localeCompare(b.name));
   }, [products, searchTerm]);
 
-  if (currentUser?.role !== 'admin') {
-    return <div className="flex justify-center items-center h-screen"><p>Access Denied. Redirecting...</p></div>;
+  if (!currentUser || currentUser.role !== 'admin') {
+    return <div className="flex justify-center items-center h-screen"><p>Loading or Access Denied...</p></div>;
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -78,10 +79,7 @@ export default function AdminProductsPage() {
       };
       reader.readAsDataURL(file);
     } else {
-      // If no file is selected, clear the preview and potentially the imageUrl if desired.
-      // For now, retain existing imageUrl if user cancels file selection.
-      // If editing, and user cancels, keep existing image. If new, and cancels, it's fine.
-      if (!editingProduct) { // Only clear if it's a new product and they deselected
+      if (!editingProduct) { 
         setFormData(prev => ({ ...prev, imageUrl: initialFormState.imageUrl }));
         setImagePreview(null);
       }
@@ -104,11 +102,11 @@ export default function AdminProductsPage() {
         description: product.description,
         price: product.price,
         category: product.category,
-        imageUrl: product.imageUrl, // This could be a URL or a Data URI
+        imageUrl: product.imageUrl, 
         stock: product.stock,
         dataAiHint: product.dataAiHint || '',
       });
-      setImagePreview(product.imageUrl); // Show current image
+      setImagePreview(product.imageUrl); 
       setIsDialogOpen(true);
     }
   };

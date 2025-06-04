@@ -18,11 +18,16 @@ export default function FinancialReportPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (currentUser?.role !== 'admin' && typeof window !== 'undefined') {
+    if (currentUser && currentUser.role !== 'admin') {
       router.push('/');
     }
+    // If !currentUser, AppLayout will handle redirect to /login
   }, [currentUser, router]);
 
+  if (!currentUser || currentUser.role !== 'admin') {
+     return <div className="flex justify-center items-center h-screen"><p>Loading or Access Denied...</p></div>;
+  }
+  
   const financialSummary = useMemo(() => {
     const totalIncome = allTransactions
       .filter(tx => tx.type === 'income' || tx.type === 'sale')
@@ -30,15 +35,11 @@ export default function FinancialReportPage() {
     
     const totalExpenses = allTransactions
       .filter(tx => tx.type === 'expense')
-      .reduce((sum, tx) => sum + Math.abs(tx.totalAmount), 0); // Expenses are stored as negative or positive, ensure positive for sum
+      .reduce((sum, tx) => sum + Math.abs(tx.totalAmount), 0);
 
     const netProfit = totalIncome - totalExpenses;
     return { totalIncome, totalExpenses, netProfit };
   }, [allTransactions]);
-
-  if (currentUser?.role !== 'admin') {
-     return <div className="flex justify-center items-center h-screen"><p>Access Denied. Redirecting...</p></div>;
-  }
   
   const sortedTransactions = [...allTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
