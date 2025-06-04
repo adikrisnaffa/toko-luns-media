@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { href: '/checkout', label: 'Checkout', icon: CreditCard },
   { href: '/transactions', label: 'My Orders', icon: ListOrdered },
   { href: '/admin', label: 'Admin Dashboard', icon: Settings, adminOnly: true },
-  { href: '/admin/products', label: 'Manage Products', icon: Package, adminOnly: true }, // Added this line
+  { href: '/admin/products', label: 'Manage Products', icon: Package, adminOnly: true },
   { href: '/admin/record-transaction', label: 'Record Transaction', icon: DollarSign, adminOnly: true },
   { href: '/admin/financial-report', label: 'Financial Report', icon: BarChart3, adminOnly: true },
 ];
