@@ -1,20 +1,26 @@
+
 import type { SVGProps } from 'react';
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-6 w-6"
+      viewBox="0 0 100 100" 
+      fill="currentColor" 
+      stroke="none"
       {...props}
     >
-      <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" />
-      <path d="M9 22V12H15V22" />
+      {/* Background Circle */}
+      <circle cx="50" cy="50" r="45" /> {/* fill is currentColor (#89aead) */}
+
+      {/* Wave shape - white */}
+      <path
+        d="M10 70 C 25 58, 35 62, 50 66 C 65 70, 75 65, 90 72 L90 85 C75 75, 65 80, 50 76 C35 72, 25 78, 10 82 Z"
+        fill="white"
+      />
+
+      {/* Play Button (Triangle) - white */}
+      <polygon points="42,35 62,50 42,65" fill="white" />
     </svg>
   );
 }
