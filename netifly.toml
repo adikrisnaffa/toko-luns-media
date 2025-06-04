@@ -1,0 +1,14 @@
+# netlify.toml
+
+[build]
+  # Command to build your Next.js site
+  command = "next build"
+  # Directory where Next.js outputs the build
+  publish = ".next"
+
+# This plugin is essential for Next.js features on Netlify
+# It handles Server Components, Image Optimization, Middleware, etc.
+# Netlify often installs this automatically for Next.js sites,
+# but explicitly adding it ensures it's used.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
