@@ -27,9 +27,10 @@ export default function LoginPage() {
 
   // If currentUser exists, we're likely about to redirect or have redirected.
   // Render null or a loading indicator to avoid showing the form briefly.
-  if (currentUser) {
+  if (currentUser && typeof window !== 'undefined' && window.location.pathname === '/login') { // Check pathname to avoid redirect loop if already on login
     return null;
   }
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +67,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin or customer"
+                placeholder="username"
                 required
                 disabled={isLoading}
               />
@@ -81,7 +82,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="adminpass or customerpass"
+                placeholder="password"
                 required
                 disabled={isLoading}
               />
