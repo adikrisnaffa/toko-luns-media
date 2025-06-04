@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import { useAppContext } from '@/contexts/AppContext';
 import type { Transaction, TransactionItem } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,24 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, DollarSign, Filter, Edit3, Trash2 } from 'lucide-react';
 import { formatCurrencyIDR } from '@/lib/utils';
+
+// Helper component for client-side date formatting
+const ClientSideFormattedDate = ({ dateIsoString, formatPattern }: { dateIsoString: string, formatPattern: string }) => {
+  const [clientDate, setClientDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setClientDate(format(new Date(dateIsoString), formatPattern));
+  }, [dateIsoString, formatPattern]);
+
+  if (clientDate === null) {
+    // Render a placeholder or nothing until client-side rendering
+    // This ensures server and client initial render match for this part
+    return <>...</>; 
+  }
+
+  return <>{clientDate}</>;
+};
+
 
 export default function TransactionHistoryPage() {
   const { allTransactions, deleteSaleTransaction, products } = useAppContext(); 
@@ -29,7 +47,18 @@ export default function TransactionHistoryPage() {
       .filter(tx => tx.type === 'sale')
       .filter(tx => {
         if (!filterDate) return true;
-        return format(new Date(tx.date), 'yyyy-MM-dd') === filterDate;
+        // Ensure date comparison is robust, e.g., by comparing start of day
+        const txDate = new Date(tx.date);
+        const filterDt = new Date(filterDate);
+        // Adjust for timezone differences if filterDate comes without time
+        const filterStartOfDay = new Date(filterDt.getFullYear(), filterDt.getMonth(), filterDt.getDate());
+        const txStartOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+        
+        if (filterDate.length === 10) { // Assuming yyyy-MM-dd
+            const inputDate = new Date(filterDate + 'T00:00:00'); // Use local timezone's start of day for comparison
+            return txDate >= inputDate && txDate < new Date(inputDate.getTime() + 24 * 60 * 60 * 1000);
+        }
+        return format(txDate, 'yyyy-MM-dd') === filterDate;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allTransactions, filterDate]);
@@ -104,7 +133,9 @@ export default function TransactionHistoryPage() {
                 {salesTransactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell className="font-medium">{tx.id.substring(0,12)}...</TableCell>
-                    <TableCell>{format(new Date(tx.date), 'MMM dd, yyyy HH:mm')}</TableCell>
+                    <TableCell>
+                      <ClientSideFormattedDate dateIsoString={tx.date} formatPattern="MMM dd, yyyy HH:mm" />
+                    </TableCell>
                     <TableCell>
                       {tx.items.map(item => `${item.name} (x${item.quantity})`).join(', ') || tx.description || '-'}
                     </TableCell>
@@ -159,8 +190,11 @@ export default function TransactionHistoryPage() {
 }
 
 // Dummy Label component if not using shadcn/ui Label, otherwise ensure Label is imported.
-const Label = ({ htmlFor, children, className }: { htmlFor: string, children: React.ReactNode, className?: string }) => (
-  <label htmlFor={htmlFor} className={className}>{children}</label>
-);
+// No need for this dummy component if @/components/ui/label is used (which it seems to be via Filter by Date label)
+// const Label = ({ htmlFor, children, className }: { htmlFor: string, children: React.ReactNode, className?: string }) => (
+//   <label htmlFor={htmlFor} className={className}>{children}</label>
+// );
+// Removing the dummy Label as shadcn/ui/label should be used via the Filter by Date label.
+// If it was truly needed, it should be imported. But it's not.
 
     
