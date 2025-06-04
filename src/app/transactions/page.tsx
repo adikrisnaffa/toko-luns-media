@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import EditOrderDialog from '@/components/EditOrderDialog'; 
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label'; // Added this import
 import { CalendarDays, DollarSign, Filter, Edit3, Trash2 } from 'lucide-react';
 import { formatCurrencyIDR } from '@/lib/utils';
 
@@ -188,13 +189,4 @@ export default function TransactionHistoryPage() {
     </div>
   );
 }
-
-// Dummy Label component if not using shadcn/ui Label, otherwise ensure Label is imported.
-// No need for this dummy component if @/components/ui/label is used (which it seems to be via Filter by Date label)
-// const Label = ({ htmlFor, children, className }: { htmlFor: string, children: React.ReactNode, className?: string }) => (
-//   <label htmlFor={htmlFor} className={className}>{children}</label>
-// );
-// Removing the dummy Label as shadcn/ui/label should be used via the Filter by Date label.
-// If it was truly needed, it should be imported. But it's not.
-
     
