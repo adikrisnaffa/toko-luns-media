@@ -66,14 +66,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false);
 
-  const [productCategories, setProductCategories] = useState<string[]>(() => {
-    const categories = new Set(products.map(p => p.category));
-    return ["All", ...Array.from(categories).sort()];
-  });
+  const baseCategories = ["Electronics", "Books", "Clothing", "Home Goods", "Sports", "Toys", "Beauty", "Automotive", "Groceries"];
+  const [productCategories, setProductCategories] = useState<string[]>(["All", ...baseCategories.sort()]);
 
   useEffect(() => {
-    const categories = new Set(products.map(p => p.category));
-    setProductCategories(["All",...Array.from(categories).sort()]);
+    const dynamicCategories = new Set(products.map(p => p.category));
+    const allDefinedCategories = new Set([...baseCategories, ...Array.from(dynamicCategories)]);
+    setProductCategories(["All", ...Array.from(allDefinedCategories).sort()]);
   }, [products]);
 
   useEffect(() => {
@@ -435,3 +434,4 @@ export const useAppContext = () => {
     
 
     
+
